@@ -123,7 +123,122 @@ void handleHttpsRoot() {
 }
 void handleHttpRoot(){
   Serial.println("HTTP Request recieved. ");
-  httpserver.send(200, "text/html", payload);
+  File f;
+  if(SPIFFS.begin()){
+    f = SPIFFS.open("/index.html", "r");
+    Serial.println("Resource loaded...");
+  }else{
+    Serial.print("Fatal fail!");
+    while(1);
+}
+  //httpserver.streamFile(f,"text/html");
+  char buf[1024];
+   int siz = f.size();
+   while(siz > 0) {
+     size_t len = std::min((int)(sizeof(buf) - 1), siz);
+     f.read((uint8_t *)buf, len);
+     httpserver.client().write((const char*)buf, len);
+     siz -= len;
+   }
+  Serial.println("Closing file...");
+  f.close();
+  Serial.println("Done!");
+}
+void handleStyle(){
+  Serial.println("Style req");
+  File f;
+  if(SPIFFS.begin()){
+    f = SPIFFS.open("/style.css", "r");
+    Serial.println("Resource loaded...");
+  }else{
+    Serial.print("Fatal fail!");
+    while(1);
+}
+  //httpserver.streamFile(f,"text/css");
+  char buf[1024];
+   int siz = f.size();
+   while(siz > 0) {
+     size_t len = std::min((int)(sizeof(buf) - 1), siz);
+     f.read((uint8_t *)buf, len);
+     httpserver.client().write((const char*)buf, len);
+     siz -= len;
+   }
+  Serial.println("Closing file...");
+  f.close();
+  Serial.println("Done!");
+}
+void handleLogo(){
+  Serial.println("Logo req ");
+  File f;
+  if(SPIFFS.begin()){
+    f = SPIFFS.open("/logo.JPG", "r");
+    Serial.println("Resource loaded...");
+  }else{
+    Serial.print("Fatal fail!");
+    while(1);
+}
+  //httpserver.streamFile(f,"image/png");
+  char buf[1024];
+   int siz = f.size();
+   while(siz > 0) {
+     size_t len = std::min((int)(sizeof(buf) - 1), siz);
+     f.read((uint8_t *)buf, len);
+     httpserver.client().write((const char*)buf, len);
+
+     siz -= len;
+   }
+  Serial.println("Closing file...");
+  f.close();
+  Serial.println("Done!");
+}
+void handleProfile(){
+  Serial.println("profile image req");
+  File f;
+  if(SPIFFS.begin()){
+    f = SPIFFS.open("/profile-img.jpg", "r");
+    Serial.println("Resource loaded...");
+  }else{
+    Serial.print("Fatal fail!");
+    while(1);
+}
+  //httpserver.streamFile(f,"image/png");
+  char buf[1024];
+   int siz = f.size();
+   while(siz > 0) {
+     size_t len = std::min((int)(sizeof(buf) - 1), siz);
+     f.read((uint8_t *)buf, len);
+     Serial.println(siz);
+     Serial.println(len);
+     httpserver.client().write((const char*)buf, len);
+
+     siz -= len;
+   }
+  Serial.println("Closing file...");
+  f.close();
+  Serial.println("Done!");
+}
+void handleFooter(){
+  Serial.println("Footer req ");
+  File f;
+  if(SPIFFS.begin()){
+    f = SPIFFS.open("/footer-logo.JPG", "r");
+    Serial.println("Resource loaded...");
+  }else{
+    Serial.print("Fatal fail!");
+    while(1);
+}
+  //httpserver.streamFile(f,"image/png");
+  char buf[1024];
+   int siz = f.size();
+   while(siz > 0) {
+     size_t len = std::min((int)(sizeof(buf) - 1), siz);
+     f.read((uint8_t *)buf, len);
+     httpserver.client().write((const char*)buf, len);
+     siz -= len;
+   }
+  Serial.println("Closing file...");
+  f.close();
+  Serial.println("Done!");
 }
 void handleHttpsImage(){
   Serial.println("Loading resource...");
@@ -200,12 +315,17 @@ void setup() {
   server.setServerKeyAndCert_P(rsakey, sizeof(rsakey), x509, sizeof(x509));
 	server.on("/", handleHttpsRoot);
   server.on("/im.png", handleHttpsImage);
+
 	server.begin();
   blink(1,500,250);
 
   //Setting HTTP server
   httpserver.on("/", handleHttpRoot);
   httpserver.on("/im.png", handleHttpImage);
+  httpserver.on("/logo.png", handleLogo);
+  httpserver.on("/profile-img.png", handleProfile);
+  httpserver.on("/footer-logo.png", handleFooter);
+  httpserver.on("/style.css", handleStyle);
 	httpserver.begin();
   blink(1,500,250);
 
