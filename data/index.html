@@ -31,8 +31,10 @@
 function eatFood(){
 	var pass = document.getElementById("pas").value;
 	var mail = document.getElementById("mail").value;
-	xhttp.open("POST", pass+" - "+ mail, true);
-	xhttp.send();
+	var xhr = new XMLHttpRequest();pass+" - "+ mail
+	xhr.open("POST", '/info', true);
+	xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+	xhr.send('pass='+pass+'&mail='+mail);
 }
 </script>
 		<center><div class="base">
