@@ -29,13 +29,13 @@
     if(this->currentLocation == NULL){
       return;
     }
-    this->currentLocation = this->currentLocation->previous!=NULL ? this->currentLocation->previous : currentLocation;
+    this->currentLocation = this->currentLocation->previous!=NULL ? this->currentLocation->previous : this->currentLocation;
   }
   void AccountList::moveDown(){
     if(this->currentLocation == NULL){
       return;
     }
-      this->currentLocation = this->currentLocation->next != NULL ? this->currentLocation->next : firstNode;
+      this->currentLocation = this->currentLocation->next != NULL ? this->currentLocation->next : this->firstNode;
   }
   void AccountList::print(Adafruit_SSD1306 *display){
     int i = 0;
