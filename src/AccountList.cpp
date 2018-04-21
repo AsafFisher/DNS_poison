@@ -16,10 +16,12 @@
       firstNode = temp;
       currentLocation = temp;
       lastNode = temp;
+      temp->previous = NULL;
 
     }else{
       lastNode->next = temp;
       temp->previous = lastNode;
+      temp->next = NULL;
       lastNode = temp;
     }
 
@@ -42,31 +44,19 @@
     if(this->currentLocation == NULL){
       return;
     }
-    Serial.println("A");
+
     node *temp = currentLocation;
     display->clearDisplay();
-//    display->setTextSize(1);
     display->setCursor(0,0);
     display->setTextColor(WHITE);
-    Serial.println("B");
-    display->println("Account Information");
-    Serial.println("C");
+
+
+    display->println("Account Information");;
     display->println("-------------------");
-    Serial.println("D");
-    //display->println("IP address: ");
-    //display->println(this->currentLocation->address.toString());
     display->println("Email address: ");
-    Serial.println("E");
     display->println(this->currentLocation->mail);
-    Serial.println("F");
     display->println("Password: ");
     display->println(this->currentLocation->password);
-    Serial.println("G");
     display->println("-------------------");
-
     display->display();
-    Serial.println("D");
-
-
-
   }
